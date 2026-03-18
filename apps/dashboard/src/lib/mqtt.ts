@@ -21,43 +21,41 @@ export function getMQTTClient(): MqttClient {
     console.error('MQTT error:', err)
   })
 
-  client.on('disconnect', () => {
-    console.log('MQTT desconectado')
-  })
-
   return client
 }
 
-export function subscribeToEvent(eventId: string, onMessage: (topic: string, payload: any) => void) {
+export function subscribeToEvent(
+  eventId: string,
+  onMessage: (topic: string, payload: any) => void,
+) {
   const c = getMQTTClient()
 
   const topics = [
-    `com/tickets/new`,
-    `com/tickets/+/update`,
-    `com/broadcast/alert`,
-    `citizen/signal/raw`,
+    'alerts/new',
+    'alerts/resolved',
+    'com/tickets/new',
+    'com/tickets/+/update',
+    'com/broadcast/alert',
+    'citizen/signal/raw',
     `com/escalation/${eventId}`,
   ]
 
-  topics.forEach((topic) => {
-    c.subscribe(topic, { qos: 1 })
-  })
+  topics.forEach((topic) => c.subscribe(topic, { qos: 1 }))
 
-  c.on('message', (topic, message) => {
+  const handler = (topic: string, message: Buffer) => {
+    let payload: any = {}
     try {
-      const payload = JSON.parse(message.toString())
-      onMessage(topic, payload)
+      payload = JSON.parse(message.toString())
     } catch {
-      onMessage(topic, message.toString())
+      payload = { raw: message.toString() }
     }
-  })
+    onMessage(topic, payload)
+  }
+
+  c.on('message', handler)
 
   return () => {
     topics.forEach((topic) => c.unsubscribe(topic))
+    c.off('message', handler)
   }
-}
-
-export function publishSignal(eventId: string, data: any) {
-  const c = getMQTTClient()
-  c.publish('citizen/signal/raw', JSON.stringify(data), { qos: 1 })
 }

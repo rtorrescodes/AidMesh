@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { getUser, isAuthenticated } from '@/lib/auth'
 import { eventsAPI, alertsAPI, ticketsAPI } from '@/lib/api'
 import { subscribeToEvent } from '@/lib/mqtt'
-import { AidMeshEvent, Alert, COMTicket, AlertSeverity, TicketPriority, SEVERITY_COLORS, PRIORITY_COLORS } from '@/types'
+import { AidMeshEvent, Alert, COMTicket, AlertSeverity, TicketPriority } from '@/types'
 import AlertList from '@/components/alerts/AlertList'
 import TicketBoard from '@/components/tickets/TicketBoard'
 
@@ -37,10 +37,21 @@ export default function DashboardPage() {
         ...prev.slice(0, 19),
       ])
 
-      if (topic === 'com/tickets/new') {
+      // Recargar alertas en tiempo real
+      if (
+        topic === 'alerts/new' ||
+        topic === 'alerts/resolved' ||
+        topic === 'com/broadcast/alert'
+      ) {
         loadEventData(selectedEvent.id)
       }
-      if (topic.startsWith('com/tickets/') && topic.endsWith('/update')) {
+
+      // Recargar tickets en tiempo real
+      if (
+        topic === 'com/tickets/new' ||
+        topic === 'citizen/signal/raw' ||
+        (topic.startsWith('com/tickets/') && topic.endsWith('/update'))
+      ) {
         loadEventData(selectedEvent.id)
       }
     })

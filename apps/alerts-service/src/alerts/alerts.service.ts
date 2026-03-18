@@ -5,12 +5,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Alert, AlertSeverity, AlertStatus, AlertType } from './alert.entity';
+import { MqttService } from '../mqtt/mqtt.service';
 
 @Injectable()
 export class AlertsService {
   constructor(
     @InjectRepository(Alert)
     private alertsRepo: Repository<Alert>,
+    private mqttService: MqttService,
   ) {}
 
   async create(data: {
@@ -29,7 +31,29 @@ export class AlertsService {
       ...data,
       status: AlertStatus.ACTIVE,
     });
-    return this.alertsRepo.save(alert);
+    const saved = await this.alertsRepo.save(alert);
+
+    // Publicar en MQTT
+    this.mqttService.publish('alerts/new', {
+      alert_id: saved.id,
+      event_id: saved.event_id,
+      type: saved.type,
+      severity: saved.severity,
+      title: saved.title,
+      latitude: saved.latitude,
+      longitude: saved.longitude,
+      timestamp: saved.created_at,
+    });
+
+    this.mqttService.publish('com/broadcast/alert', {
+      alert_id: saved.id,
+      event_id: saved.event_id,
+      severity: saved.severity,
+      title: saved.title,
+      timestamp: saved.created_at,
+    });
+
+    return saved;
   }
 
   async findAll(event_id?: string): Promise<Alert[]> {
@@ -66,7 +90,17 @@ export class AlertsService {
     alert.status = AlertStatus.RESOLVED;
     alert.resolved_at = new Date();
     alert.resolved_by = userId;
-    return this.alertsRepo.save(alert);
+    const saved = await this.alertsRepo.save(alert);
+
+    // Publicar resolución en MQTT
+    this.mqttService.publish('alerts/resolved', {
+      alert_id: saved.id,
+      event_id: saved.event_id,
+      resolved_by: userId,
+      timestamp: saved.resolved_at,
+    });
+
+    return saved;
   }
 
   async update(id: string, data: Partial<Alert>): Promise<Alert> {

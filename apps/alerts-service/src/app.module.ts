@@ -6,6 +6,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { EventsModule } from './events/events.module';
 import { Alert } from './alerts/alert.entity';
 import { Event } from './events/event.entity';
+import { JwtStrategy } from './auth/jwt.strategy';
 
 @Module({
   imports: [
@@ -27,5 +28,6 @@ import { Event } from './events/event.entity';
     AlertsModule,
     EventsModule,
   ],
+  providers: [JwtStrategy],
 })
 export class AppModule {}
