@@ -13,7 +13,7 @@ import { Event } from './events/event.entity';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       entities: [Alert, Event],
-      synchronize: process.env.NODE_ENV === 'development',
+      synchronize: false,
       ssl: process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
         : false,

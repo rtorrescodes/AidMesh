@@ -9,15 +9,15 @@ import { Role } from './roles/role.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
-      entities: [User, Role],
-      synchronize: process.env.NODE_ENV === 'development',
-      ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : false,
-    }),
+  TypeOrmModule.forRoot({
+    type: 'postgres',
+    url: process.env.DATABASE_URL,
+    entities: [User, Role],
+    synchronize: false,
+    ssl: process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
+  }),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,

@@ -1,5 +1,3 @@
-// ─── USUARIOS Y AUTH ─────────────────────────────────────────────
-
 export enum TrustLevel {
   CITIZEN = 0,
   VOLUNTEER = 1,
@@ -21,8 +19,6 @@ export interface AuthState {
   access_token: string | null
   refresh_token: string | null
 }
-
-// ─── EVENTOS ─────────────────────────────────────────────────────
 
 export enum EventStatus {
   PREPARATION = 'preparacion',
@@ -67,8 +63,6 @@ export interface AidMeshEvent {
   closed_at?: string
 }
 
-// ─── ALERTAS ─────────────────────────────────────────────────────
-
 export enum AlertSeverity {
   GREEN = 'verde',
   YELLOW = 'amarillo',
@@ -107,8 +101,6 @@ export interface Alert {
   created_at: string
   resolved_at?: string
 }
-
-// ─── COM TICKETS ─────────────────────────────────────────────────
 
 export enum TicketStatus {
   OPEN = 'abierto',
@@ -152,4 +144,41 @@ export interface COMTicket {
   assigned_to?: string
   org_id?: string
   created_at: string
-  u
+  updated_at: string
+  resolved_at?: string
+}
+
+export enum SignalStatus {
+  PENDING = 'pendiente',
+  REVIEWED = 'revisada',
+  CONFIRMED = 'confirmada',
+  REJECTED = 'rechazada',
+}
+
+export interface CitizenSignal {
+  id: string
+  event_id: string
+  raw_message: string
+  latitude?: number
+  longitude?: number
+  contact_info?: string
+  status: SignalStatus
+  linked_ticket_id?: string
+  reviewed_by?: string
+  reviewed_at?: string
+  created_at: string
+}
+
+export const SEVERITY_COLORS: Record<AlertSeverity, string> = {
+  [AlertSeverity.GREEN]: '#1d9e75',
+  [AlertSeverity.YELLOW]: '#f5c518',
+  [AlertSeverity.ORANGE]: '#f07d18',
+  [AlertSeverity.RED]: '#e53935',
+}
+
+export const PRIORITY_COLORS: Record<TicketPriority, string> = {
+  [TicketPriority.LOW]: '#1d9e75',
+  [TicketPriority.MEDIUM]: '#f5c518',
+  [TicketPriority.HIGH]: '#f07d18',
+  [TicketPriority.CRITICAL]: '#e53935',
+}
