@@ -129,16 +129,11 @@ CREATE TYPE need_type AS ENUM (
   'rescate', 'transporte', 'suministros', 'seguridad'
 );
 
-CREATE TYPE resource_category AS ENUM (
-  'víveres', 'medicamentos', 'equipo', 'personal',
-  'vehículo', 'albergue'
-);
-
 CREATE TABLE IF NOT EXISTS com_tickets (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_id          UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   need_type         need_type NOT NULL,
-  resource_category resource_category NOT NULL,
+  resource_category VARCHAR(100) NOT NULL,
   priority          ticket_priority DEFAULT 'media',
   status            ticket_status DEFAULT 'abierto',
   quantity          INTEGER,
@@ -279,7 +274,6 @@ CREATE TRIGGER trg_routes_updated_at
 
 -- ─── DATOS INICIALES ─────────────────────────────────────────────
 
--- Organización base
 INSERT INTO organizations (id, name, description)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
@@ -287,7 +281,6 @@ VALUES (
   'Piloto AidMesh — Baja California Sur'
 ) ON CONFLICT DO NOTHING;
 
--- Roles base
 INSERT INTO roles (id, name, description, permissions) VALUES
 (
   '00000000-0000-0000-0000-000000000010',

@@ -9,6 +9,7 @@ import { AidMeshEvent, Alert, COMTicket, AlertSeverity, TicketPriority } from '@
 import AlertList from '@/components/alerts/AlertList'
 import TicketBoard from '@/components/tickets/TicketBoard'
 import EventMap from '@/components/map/EventMap'
+import CreateTicket from '@/components/tickets/CreateTicket'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -196,6 +197,10 @@ export default function DashboardPage() {
                 <AlertList
                   alerts={alerts}
                   onResolve={() => loadEventData(selectedEvent.id)}
+                />
+                <CreateTicket
+                  eventId={selectedEvent.id}
+                  onCreated={() => loadEventData(selectedEvent.id)}
                 />
                 <TicketBoard
                   tickets={tickets}
