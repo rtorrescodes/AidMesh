@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────
--- AidMesh — Schema inicial
+-- AidMesh — Schema v1.2
 -- PostgreSQL + PostGIS
 -- ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +47,12 @@ CREATE TABLE IF NOT EXISTS users (
 -- ─── EVENTOS ─────────────────────────────────────────────────────
 
 CREATE TYPE event_status AS ENUM (
-  'preparacion', 'activo', 'contenido', 'cerrado', 'archivo'
+  'preparacion',  -- Draft, siendo configurado
+  'activo',       -- Operación plena
+  'desactivado',  -- Oculto para todos excepto Nivel 3
+  'contenido',    -- Visible, solo lectura
+  'cerrado',      -- Finalizado
+  'archivado'     -- Permanente, no se puede reabrir
 );
 
 CREATE TYPE event_type AS ENUM (
@@ -91,42 +96,112 @@ CREATE TYPE alert_status AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS alerts (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  type        alert_type NOT NULL,
-  severity    alert_severity DEFAULT 'amarillo',
-  status      alert_status DEFAULT 'activa',
-  title       VARCHAR(255),
-  description TEXT,
-  latitude    DECIMAL(10, 7) NOT NULL,
-  longitude   DECIMAL(10, 7) NOT NULL,
-  location    GEOMETRY(POINT, 4326),
-  radius_km   DECIMAL(8, 2) DEFAULT 1.0,
-  event_id    UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
-  org_id      UUID REFERENCES organizations(id) ON DELETE SET NULL,
-  created_at  TIMESTAMPTZ DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ DEFAULT NOW(),
-  resolved_at TIMESTAMPTZ,
-  resolved_by UUID REFERENCES users(id) ON DELETE SET NULL
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type         alert_type NOT NULL,
+  severity     alert_severity DEFAULT 'amarillo',
+  status       alert_status DEFAULT 'activa',
+  title        VARCHAR(255),
+  description  TEXT,
+  latitude     DECIMAL(10, 7) NOT NULL,
+  longitude    DECIMAL(10, 7) NOT NULL,
+  location     GEOMETRY(POINT, 4326),
+  radius_km    DECIMAL(8, 2) DEFAULT 1.0,
+  event_id     UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  created_by   UUID REFERENCES users(id) ON DELETE SET NULL,
+  org_id       UUID REFERENCES organizations(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW(),
+  resolved_at  TIMESTAMPTZ,
+  resolved_by  UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_alerts_location ON alerts USING GIST (location);
-CREATE INDEX IF NOT EXISTS idx_alerts_event_id ON alerts (event_id);
-CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts (status);
+CREATE INDEX IF NOT EXISTS idx_alerts_location  ON alerts USING GIST (location);
+CREATE INDEX IF NOT EXISTS idx_alerts_event_id  ON alerts (event_id);
+CREATE INDEX IF NOT EXISTS idx_alerts_status    ON alerts (status);
 
 -- ─── COM TICKETS ─────────────────────────────────────────────────
 
 CREATE TYPE ticket_status AS ENUM (
-  'abierto', 'asignado', 'en_progreso', 'resuelto', 'cerrado'
+  'nuevo',          -- Recién creado, sin revisar
+  'abierto',        -- Pendiente de atención
+  'atendido',       -- Alguien lo tomó
+  'asignado',       -- Asignado a persona específica
+  'en_seguimiento', -- Activamente en proceso
+  'demorado',       -- Sin actividad tras timeout (automático)
+  'cerrado',        -- Resuelto o irresolvable, documentado
+  'archivado'       -- Solo reportes, invisible en dashboard
 );
 
 CREATE TYPE ticket_priority AS ENUM (
   'baja', 'media', 'alta', 'critica'
 );
 
+-- ─── CATÁLOGO COMPLETO DE NECESIDADES ────────────────────────────
+-- 41 tipos organizados por categoría
+
 CREATE TYPE need_type AS ENUM (
-  'alimento', 'agua', 'medico', 'albergue',
-  'rescate', 'transporte', 'suministros', 'seguridad'
+  -- Alimentación e hidratación
+  'agua_potable',
+  'alimentos_no_perecederos',
+  'alimentos_preparados',
+  'formula_infantil',
+  'hidratacion_oral',
+
+  -- Salud y medicina
+  'atencion_medica',
+  'medicamentos',
+  'equipo_medico',
+  'salud_mental',
+  'atencion_heridos',
+
+  -- Higiene y saneamiento
+  'kit_higiene',
+  'pañales',
+  'agua_saneamiento',
+  'banos_portatiles',
+
+  -- Refugio y albergue
+  'albergue_temporal',
+  'carpas',
+  'cobijas_colchonetas',
+  'kit_dormitorio',
+
+  -- Vestimenta
+  'ropa_adulto',
+  'ropa_infantil',
+  'calzado',
+  'ropa_clima_frio',
+
+  -- Logística y transporte
+  'transporte_personas',
+  'transporte_suministros',
+  'combustible',
+  'vehiculo_rescate',
+
+  -- Energía y comunicaciones
+  'energia_electrica',
+  'paneles_solares',
+  'comunicacion_radio',
+  'conectividad_internet',
+
+  -- Búsqueda y rescate
+  'rescate_urbano',
+  'rescate_acuatico',
+  'rescate_montaña',
+  'perros_rescate',
+
+  -- Seguridad
+  'seguridad_perimetral',
+  'control_acceso',
+  'evacuacion_zona',
+
+  -- Herramientas y mano de obra
+  'herramientas_obra',
+  'voluntarios_campo',
+  'maquinaria_pesada',
+
+  -- Apoyo psicosocial
+  'apoyo_psicosocial'
 );
 
 CREATE TABLE IF NOT EXISTS com_tickets (
@@ -135,7 +210,7 @@ CREATE TABLE IF NOT EXISTS com_tickets (
   need_type         need_type NOT NULL,
   resource_category VARCHAR(100) NOT NULL,
   priority          ticket_priority DEFAULT 'media',
-  status            ticket_status DEFAULT 'abierto',
+  status            ticket_status DEFAULT 'nuevo',
   quantity          INTEGER,
   latitude          DECIMAL(10, 7) NOT NULL,
   longitude         DECIMAL(10, 7) NOT NULL,
@@ -143,18 +218,26 @@ CREATE TABLE IF NOT EXISTS com_tickets (
   description       TEXT,
   payload           JSONB DEFAULT '{}',
   report_count      INTEGER DEFAULT 1,
+
+  -- Asignación con trazabilidad
   created_by        UUID REFERENCES users(id) ON DELETE SET NULL,
   assigned_to       UUID REFERENCES users(id) ON DELETE SET NULL,
+  assigned_by       UUID REFERENCES users(id) ON DELETE SET NULL,  -- ← NUEVO
+  assigned_at       TIMESTAMPTZ,                                    -- ← NUEVO
+
   org_id            UUID REFERENCES organizations(id) ON DELETE SET NULL,
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   updated_at        TIMESTAMPTZ DEFAULT NOW(),
-  resolved_at       TIMESTAMPTZ
+  resolved_at       TIMESTAMPTZ,
+  delayed_at        TIMESTAMPTZ,   -- ← NUEVO: cuando entró en estado 'demorado'
+  archived_at       TIMESTAMPTZ    -- ← NUEVO
 );
 
 CREATE INDEX IF NOT EXISTS idx_tickets_location  ON com_tickets USING GIST (location);
 CREATE INDEX IF NOT EXISTS idx_tickets_event_id  ON com_tickets (event_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_status    ON com_tickets (status);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority  ON com_tickets (priority);
+CREATE INDEX IF NOT EXISTS idx_tickets_assigned  ON com_tickets (assigned_to);  -- ← NUEVO
 
 -- ─── SEÑALES CIUDADANAS ───────────────────────────────────────────
 
@@ -163,23 +246,23 @@ CREATE TYPE signal_status AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS citizen_signals (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  event_id        UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  raw_message     TEXT NOT NULL,
-  latitude        DECIMAL(10, 7),
-  longitude       DECIMAL(10, 7),
-  location        GEOMETRY(POINT, 4326),
-  contact_info    VARCHAR(255),
-  status          signal_status DEFAULT 'pendiente',
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id         UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  raw_message      TEXT NOT NULL,
+  latitude         DECIMAL(10, 7),
+  longitude        DECIMAL(10, 7),
+  location         GEOMETRY(POINT, 4326),
+  contact_info     VARCHAR(255),
+  status           signal_status DEFAULT 'pendiente',
   linked_ticket_id UUID REFERENCES com_tickets(id) ON DELETE SET NULL,
-  reviewed_by     UUID REFERENCES users(id) ON DELETE SET NULL,
-  reviewed_at     TIMESTAMPTZ,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  reviewed_by      UUID REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_signals_location ON citizen_signals USING GIST (location);
-CREATE INDEX IF NOT EXISTS idx_signals_event_id ON citizen_signals (event_id);
-CREATE INDEX IF NOT EXISTS idx_signals_status   ON citizen_signals (status);
+CREATE INDEX IF NOT EXISTS idx_signals_location  ON citizen_signals USING GIST (location);
+CREATE INDEX IF NOT EXISTS idx_signals_event_id  ON citizen_signals (event_id);
+CREATE INDEX IF NOT EXISTS idx_signals_status    ON citizen_signals (status);
 
 -- ─── MAP LAYERS ───────────────────────────────────────────────────
 
@@ -223,20 +306,48 @@ CREATE INDEX IF NOT EXISTS idx_routes_event_id ON emergency_routes (event_id);
 -- ─── AUDIT LOG ────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS audit_log (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  entity_type VARCHAR(100) NOT NULL,
-  entity_id   UUID NOT NULL,
-  action      VARCHAR(50) NOT NULL,
-  actor_id    UUID REFERENCES users(id) ON DELETE SET NULL,
-  actor_email VARCHAR(255),
-  diff        JSONB DEFAULT '{}',
-  metadata    JSONB DEFAULT '{}',
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  entity_type  VARCHAR(100) NOT NULL,
+  entity_id    UUID NOT NULL,
+  action       VARCHAR(50) NOT NULL,
+  actor_id     UUID REFERENCES users(id) ON DELETE SET NULL,
+  actor_email  VARCHAR(255),
+  diff         JSONB DEFAULT '{}',
+  metadata     JSONB DEFAULT '{}',
+  created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_entity    ON audit_log (entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_audit_actor     ON audit_log (actor_id);
-CREATE INDEX IF NOT EXISTS idx_audit_created   ON audit_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_entity  ON audit_log (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_actor   ON audit_log (actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at DESC);
+
+-- ─── WIDGET PREFERENCES ───────────────────────────────────────────
+-- Configuración de widgets togglables por evento/org/usuario
+
+CREATE TYPE widget_scope AS ENUM (
+  'event',   -- Nivel 3/2: aplica a todo el evento
+  'org',     -- Nivel 2: aplica a la organización dentro del evento
+  'personal' -- Nivel 1: solo para ese usuario
+);
+
+CREATE TABLE IF NOT EXISTS widget_preferences (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id    UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  scope       widget_scope DEFAULT 'personal',
+  preferences JSONB DEFAULT '{}',
+  -- Ejemplo de preferences:
+  -- {
+  --   "status_bar": true,
+  --   "activity_log": true,
+  --   "mqtt_feed": false,
+  --   "map_layer_1": true,
+  --   "map_layer_2": true,
+  --   "map_layer_3": false
+  -- }
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, event_id, scope)
+);
 
 -- ─── TRIGGERS: updated_at automático ─────────────────────────────
 
@@ -272,6 +383,32 @@ CREATE TRIGGER trg_routes_updated_at
   BEFORE UPDATE ON emergency_routes
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- ─── TRIGGER: delayed_at automático ──────────────────────────────
+-- Cuando el status cambia a 'demorado', registra timestamp automáticamente
+
+CREATE OR REPLACE FUNCTION set_ticket_timestamps()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'demorado' AND OLD.status != 'demorado' THEN
+    NEW.delayed_at = NOW();
+  END IF;
+  IF NEW.status = 'cerrado' AND OLD.status != 'cerrado' THEN
+    NEW.resolved_at = NOW();
+  END IF;
+  IF NEW.status = 'archivado' AND OLD.status != 'archivado' THEN
+    NEW.archived_at = NOW();
+  END IF;
+  IF NEW.assigned_to IS NOT NULL AND OLD.assigned_to IS NULL THEN
+    NEW.assigned_at = NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_ticket_timestamps
+  BEFORE UPDATE ON com_tickets
+  FOR EACH ROW EXECUTE FUNCTION set_ticket_timestamps();
+
 -- ─── DATOS INICIALES ─────────────────────────────────────────────
 
 INSERT INTO organizations (id, name, description)
@@ -289,10 +426,12 @@ INSERT INTO roles (id, name, description, permissions) VALUES
   '{
     "alerts:read": true, "alerts:create": true, "alerts:resolve": true,
     "com:send_structured": true, "com:send_open": true, "com:manage_templates": true,
+    "com:assign_tickets": true, "com:close_tickets": true,
     "vehicles:track": true, "vehicles:manage": true,
     "events:create": true, "events:manage": true, "events:close": true,
     "citizens:review_signals": true,
-    "admin:manage_users": true, "admin:manage_roles": true
+    "admin:manage_users": true, "admin:manage_roles": true,
+    "widgets:configure_event": true
   }'::jsonb
 ),
 (
@@ -302,9 +441,11 @@ INSERT INTO roles (id, name, description, permissions) VALUES
   '{
     "alerts:read": true, "alerts:create": true, "alerts:resolve": true,
     "com:send_structured": true, "com:send_open": true,
+    "com:assign_tickets": true, "com:close_tickets": true,
     "vehicles:track": true,
     "events:manage": true,
-    "citizens:review_signals": true
+    "citizens:review_signals": true,
+    "widgets:configure_org": true
   }'::jsonb
 ),
 (
@@ -314,6 +455,7 @@ INSERT INTO roles (id, name, description, permissions) VALUES
   '{
     "alerts:read": true,
     "com:send_structured": true, "com:send_open": true,
-    "vehicles:track": false
+    "vehicles:track": false,
+    "widgets:configure_personal": true
   }'::jsonb
 ) ON CONFLICT DO NOTHING;

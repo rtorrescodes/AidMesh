@@ -66,11 +66,20 @@ func main() {
 				middleware.RequirePermission("com:send_structured"),
 				ticketsHandler.Create,
 			)
-			tickets.GET("", ticketsHandler.GetByEvent)
+			tickets.GET("",    ticketsHandler.GetByEvent)
 			tickets.GET("/:id", ticketsHandler.GetByID)
 			tickets.PATCH("/:id",
 				middleware.RequirePermission("com:send_structured"),
 				ticketsHandler.Update,
+			)
+			// ← NUEVAS RUTAS
+			tickets.PATCH("/:id/assign",
+				middleware.RequirePermission("com:assign_tickets"),
+				ticketsHandler.Assign,
+			)
+			tickets.GET("/:id/assignable-users",
+				middleware.RequirePermission("com:assign_tickets"),
+				ticketsHandler.GetAssignableUsers,
 			)
 		}
 

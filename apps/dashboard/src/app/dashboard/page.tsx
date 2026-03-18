@@ -240,8 +240,7 @@ export default function DashboardPage() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  container: { display: 'flex', height: '100vh', overflow: 'hidden', background: '#0f1117' },
-  loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#8b8fa8' },
+container: { display: 'flex', height: 'calc(100vh - 24px)', overflow: 'hidden', background: '#0f1117' },  loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#8b8fa8' },
   sidebar: { width: '240px', background: '#1a1d26', borderRight: '1px solid #2a2d3e', display: 'flex', flexDirection: 'column', flexShrink: 0 },
   sidebarHeader: { padding: '20px 16px', borderBottom: '1px solid #2a2d3e' },
   sidebarLogo: { display: 'block', fontSize: '16px', fontWeight: '700', color: '#534ab7', marginBottom: '4px' },
