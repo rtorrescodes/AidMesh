@@ -8,6 +8,7 @@ import { subscribeToEvent } from '@/lib/mqtt'
 import { AidMeshEvent, Alert, COMTicket, AlertSeverity, TicketPriority } from '@/types'
 import AlertList from '@/components/alerts/AlertList'
 import TicketBoard from '@/components/tickets/TicketBoard'
+import EventMap from '@/components/map/EventMap'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -37,7 +38,6 @@ export default function DashboardPage() {
         ...prev.slice(0, 19),
       ])
 
-      // Recargar alertas en tiempo real
       if (
         topic === 'alerts/new' ||
         topic === 'alerts/resolved' ||
@@ -46,7 +46,6 @@ export default function DashboardPage() {
         loadEventData(selectedEvent.id)
       }
 
-      // Recargar tickets en tiempo real
       if (
         topic === 'com/tickets/new' ||
         topic === 'citizen/signal/raw' ||
@@ -193,6 +192,7 @@ export default function DashboardPage() {
             {/* Content grid */}
             <div style={styles.grid}>
               <div style={styles.gridLeft}>
+                <EventMap alerts={alerts} eventName={selectedEvent.name} />
                 <AlertList
                   alerts={alerts}
                   onResolve={() => loadEventData(selectedEvent.id)}
