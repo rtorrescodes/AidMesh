@@ -65,7 +65,7 @@ func (r *COMRepository) CreateTicket(
 		) VALUES (
 			$1, $2, $3, $4, 'nuevo',
 			$5, $6, $7,
-			ST_SetSRID(ST_MakePoint($7, $6), 4326),
+			ST_SetSRID(ST_MakePoint($7::numeric, $6::numeric), 4326),
 			$8, $9, $10
 		)
 		RETURNING `+ticketColumns,

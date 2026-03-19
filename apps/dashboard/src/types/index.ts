@@ -118,14 +118,68 @@ export enum TicketPriority {
 }
 
 export enum NeedType {
-  FOOD = 'alimento',
-  WATER = 'agua',
-  MEDICAL = 'medico',
-  SHELTER = 'albergue',
-  RESCUE = 'rescate',
-  TRANSPORT = 'transporte',
-  SUPPLIES = 'suministros',
-  SECURITY = 'seguridad',
+  // Alimentación e hidratación
+  AGUA_POTABLE = 'agua_potable',
+  ALIMENTOS_NO_PERECEDEROS = 'alimentos_no_perecederos',
+  ALIMENTOS_PREPARADOS = 'alimentos_preparados',
+  FORMULA_INFANTIL = 'formula_infantil',
+  HIDRATACION_ORAL = 'hidratacion_oral',
+
+  // Salud
+  ATENCION_MEDICA = 'atencion_medica',
+  MEDICAMENTOS = 'medicamentos',
+  EQUIPO_MEDICO = 'equipo_medico',
+  SALUD_MENTAL = 'salud_mental',
+  ATENCION_HERIDOS = 'atencion_heridos',
+
+  // Higiene
+  KIT_HIGIENE = 'kit_higiene',
+  PANALES = 'pañales',
+  AGUA_SANEAMIENTO = 'agua_saneamiento',
+  BANOS_PORTATILES = 'banos_portatiles',
+
+  // Refugio
+  ALBERGUE_TEMPORAL = 'albergue_temporal',
+  CARPAS = 'carpas',
+  COBIJAS_COLCHONETAS = 'cobijas_colchonetas',
+  KIT_DORMITORIO = 'kit_dormitorio',
+
+  // Vestimenta
+  ROPA_ADULTO = 'ropa_adulto',
+  ROPA_INFANTIL = 'ropa_infantil',
+  CALZADO = 'calzado',
+  ROPA_CLIMA_FRIO = 'ropa_clima_frio',
+
+  // Logística
+  TRANSPORTE_PERSONAS = 'transporte_personas',
+  TRANSPORTE_SUMINISTROS = 'transporte_suministros',
+  COMBUSTIBLE = 'combustible',
+  VEHICULO_RESCATE = 'vehiculo_rescate',
+
+  // Energía
+  ENERGIA_ELECTRICA = 'energia_electrica',
+  PANELES_SOLARES = 'paneles_solares',
+  COMUNICACION_RADIO = 'comunicacion_radio',
+  CONECTIVIDAD_INTERNET = 'conectividad_internet',
+
+  // Rescate
+  RESCATE_URBANO = 'rescate_urbano',
+  RESCATE_ACUATICO = 'rescate_acuatico',
+  RESCATE_MONTANA = 'rescate_montaña',
+  PERROS_RESCATE = 'perros_rescate',
+
+  // Seguridad
+  SEGURIDAD_PERIMETRAL = 'seguridad_perimetral',
+  CONTROL_ACCESO = 'control_acceso',
+  EVACUACION_ZONA = 'evacuacion_zona',
+
+  // Herramientas
+  HERRAMIENTAS_OBRA = 'herramientas_obra',
+  VOLUNTARIOS_CAMPO = 'voluntarios_campo',
+  MAQUINARIA_PESADA = 'maquinaria_pesada',
+
+  // Apoyo psicosocial
+  APOYO_PSICOSOCIAL = 'apoyo_psicosocial',
 }
 
 export interface COMTicket {
